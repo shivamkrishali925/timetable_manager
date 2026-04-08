@@ -1,0 +1,1951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture Timetable Manager</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 95%;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 16px;
+        }
+
+        .controls {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #495057;
+            text-transform: uppercase;
+        }
+
+        select, input, button {
+            padding: 12px 18px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        button.secondary {
+            background: #6c757d;
+        }
+
+        button.secondary:hover {
+            background: #5a6268;
+        }
+
+        button.danger {
+            background: #dc3545;
+        }
+
+        button.danger:hover {
+            background: #c82333;
+        }
+
+        button.success {
+            background: #28a745;
+        }
+
+        button.success:hover {
+            background: #218838;
+        }
+
+        button.info {
+            background: #17a2b8;
+        }
+
+        button.info:hover {
+            background: #138496;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            background: #495057;
+            color: white;
+            padding: 14px 10px;
+            text-align: center;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-size: 14px;
+        }
+
+        th.time-col {
+            background: #343a40;
+        }
+
+        td {
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            text-align: center;
+            vertical-align: top;
+            min-width: 140px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        td:hover {
+            background: #f8f9fa;
+            box-shadow: inset 0 0 0 2px #667eea;
+        }
+
+        .time-col {
+            background: #e9ecef;
+            font-weight: 600;
+            color: #495057;
+            min-width: 160px;
+            font-size: 14px;
+        }
+
+        .no-clashing {
+            background: #d4edda;
+        }
+
+        .clashing {
+            background: #f8d7da;
+        }
+
+        .lecture-cell {
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .lecture-subject {
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            font-size: 13px;
+        }
+
+        .lecture-faculty {
+            color: #7f8c8d;
+            font-size: 12px;
+        }
+
+        .lecture-days {
+            color: #3498db;
+            font-size: 11px;
+            margin-top: 3px;
+            font-weight: 600;
+        }
+
+        .single-faculty-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            height: 100%;
+        }
+
+        .multi-subject-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .subject-block {
+            padding: 5px;
+            border-bottom: 1px dashed #dee2e6;
+        }
+
+        .subject-block:last-child {
+            border-bottom: none;
+        }
+
+        .add-subject-btn {
+            width: 100%;
+            padding: 5px;
+            margin-top: 8px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .add-subject-btn:hover {
+            background: #218838;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .merged-cell {
+            background: #e3f2fd !important;
+            border: 2px solid #2196f3 !important;
+        }
+
+        .highlight {
+            background: #fff3cd !important;
+            border: 2px solid #ffc107 !important;
+            font-weight: bold;
+        }
+
+        .stats {
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 2px solid #dee2e6;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h3 {
+            font-size: 15px;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: #495057;
+            font-size: 22px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+
+        .faculty-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .faculty-tag {
+            background: #e9ecef;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .faculty-tag button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .faculty-day-item {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .faculty-day-item .faculty-part {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .faculty-day-item .days-part {
+            color: #3498db;
+            font-weight: 600;
+        }
+
+        .faculty-day-item button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .empty-cell {
+            color: #adb5bd;
+            font-style: italic;
+            font-size: 13px;
+        }
+
+        @media print {
+            .controls, .stats, button, .summary-section {
+                display: none !important;
+            }
+            
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .container {
+                box-shadow: none;
+                max-width: 100%;
+            }
+
+            @page {
+                size: A4 landscape;
+                margin: 10mm;
+            }
+
+            table {
+                font-size: 10px;
+            }
+
+            th, td {
+                padding: 6px 4px;
+            }
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .legend-color {
+            width: 22px;
+            height: 22px;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+
+        .summary-section {
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 2px solid #dee2e6;
+        }
+
+        .summary-section h2 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 22px;
+        }
+
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .summary-table th {
+            background: #495057;
+            color: white;
+            padding: 14px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .summary-table td {
+            padding: 14px;
+            border-bottom: 1px solid #dee2e6;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        .summary-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .summary-table .faculty-name {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .summary-table .lecture-count {
+            text-align: center;
+            font-weight: bold;
+            color: #28a745;
+            font-size: 16px;
+        }
+
+        .summary-table .subject-list {
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #2c3e50;
+            line-height: 1.8;
+        }
+
+        .subject-item {
+            display: inline-block;
+            margin-right: 8px;
+            margin-bottom: 4px;
+        }
+
+        .lunch-cell {
+            background: #fff9e6 !important;
+            font-weight: 600;
+            color: #856404;
+        }
+
+        #exportContent {
+            display: none;
+            padding: 20px;
+            background: white;
+        }
+
+        .export-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+        }
+
+        .export-header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .export-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9px;
+        }
+
+        .export-table th {
+            background: #495057;
+            color: white;
+            padding: 6px 3px;
+            text-align: center;
+            font-weight: 600;
+            border: 1px solid #333;
+            font-size: 9px;
+        }
+
+        .export-table td {
+            border: 1px solid #333;
+            padding: 4px 3px;
+            text-align: center;
+            vertical-align: top;
+            font-size: 8px;
+        }
+
+        .export-table .time-col {
+            background: #e9ecef;
+            font-weight: 600;
+            font-size: 8px;
+        }
+
+        .export-table .lecture-subject {
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+            font-size: 9px;
+        }
+
+        .export-table .lecture-faculty {
+            font-size: 8px;
+            color: #666;
+            line-height: 1.2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Lecture Timetable Manager</h1>
+            <p>Manage your nursing college lecture schedule with ease</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Filter by Faculty</label>
+                <select id="facultyFilter">
+                    <option value="">All Faculty</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Filter by Section</label>
+                <select id="sectionFilter">
+                    <option value="">All Sections</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Filter by Subject</label>
+                <input type="text" id="subjectFilter" placeholder="Type subject name...">
+            </div>
+
+            <button onclick="clearFilters()">
+                <span>🔄</span> Clear Filters
+            </button>
+
+            <button class="success" onclick="openAddLectureModal()">
+                <span>➕</span> Add Lecture
+            </button>
+
+            <button class="secondary" onclick="manageFaculty()">
+                <span>👨‍🏫</span> Manage Faculty
+            </button>
+
+            <button class="info" onclick="exportToPDF()">
+                <span>📄</span> Export PDF
+            </button>
+
+            <button class="info" onclick="exportToWord()">
+                <span>📝</span> Export Word
+            </button>
+
+            <button class="secondary" onclick="exportToCSV()">
+                <span>📥</span> Export CSV
+            </button>
+
+            <button class="secondary" onclick="importFromCSV()">
+                <span>📤</span> Import CSV
+            </button>
+
+            <button class="secondary" onclick="window.print()">
+                <span>🖨️</span> Print
+            </button>
+
+            <button class="danger" onclick="resetTimetable()">
+                <span>🗑️</span> Reset All
+            </button>
+        </div>
+
+        <div class="table-wrapper">
+            <table id="timetable">
+                <thead>
+                    <tr>
+                        <th class="time-col">Class / Time</th>
+                        <th class="time-col">9:00AM-10:00AM</th>
+                        <th class="time-col">10:00AM-11:00AM</th>
+                        <th class="time-col">11:00AM-12:00PM</th>
+                        <th class="time-col">12:00PM-1:00PM</th>
+                        <th class="time-col" style="background: #ffc107; color: #000;">LUNCH</th>
+                        <th class="time-col">1:00PM-2:00PM</th>
+                        <th class="time-col">2:00PM-3:00PM</th>
+                        <th class="time-col">3:00PM-4:00PM</th>
+                    </tr>
+                </thead>
+                <tbody id="timetableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #d4edda;"></div>
+                <span>No Clashing</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f8d7da;"></div>
+                <span>Clashing Schedule</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #fff3cd; border: 2px solid #ffc107;"></div>
+                <span>Highlighted (Filtered)</span>
+            </div>
+        </div>
+
+        <div class="stats" id="stats"></div>
+
+        <div class="summary-section">
+            <h2>📋 Faculty Lecture Summary</h2>
+            <table class="summary-table">
+                <thead>
+                    <tr>
+                        <th>Faculty Name</th>
+                        <th style="text-align: center;">Total Lectures</th>
+                        <th>Subjects</th>
+                    </tr>
+                </thead>
+                <tbody id="summaryTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="exportContent">
+        <div class="export-header">
+            <h1>Lecture Timetable</h1>
+            <p>Academic Year 2025-2026</p>
+        </div>
+        <table class="export-table" id="exportTable">
+        </table>
+    </div>
+
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Edit Lecture</h2>
+            <div class="form-group">
+                <label>Subject Name(s)</label>
+                <div id="subjectsList" style="margin-bottom: 10px;">
+                    <!-- Subject blocks will be added here -->
+                </div>
+                <div style="display: flex; gap: 10px; align-items: flex-end;">
+                    <div style="flex: 1;">
+                        <input type="text" id="newSubjectName" placeholder="Enter subject name" style="width: 100%;">
+                    </div>
+                    <button type="button" class="success" onclick="addSubject()" style="padding: 10px 15px;">
+                        ➕ Add Subject
+                    </button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Faculty & Days Assignment</label>
+                <div id="facultyDaysList" style="margin-bottom: 10px;">
+                    <!-- Faculty-day pairs will be added here -->
+                </div>
+                <div style="display: flex; gap: 10px; align-items: flex-end;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 12px; margin-bottom: 5px;">Select Faculty</label>
+                        <select id="facultySelectForAdd" style="width: 100%;">
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 12px; margin-bottom: 5px;">Select Days</label>
+                        <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                            <label style="display: flex; align-items: center; gap: 3px; cursor: pointer; font-weight: normal; font-size: 12px;">
+                                <input type="checkbox" class="temp-day-checkbox" value="M"> M
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 3px; cursor: pointer; font-weight: normal; font-size: 12px;">
+                                <input type="checkbox" class="temp-day-checkbox" value="T"> T
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 3px; cursor: pointer; font-weight: normal; font-size: 12px;">
+                                <input type="checkbox" class="temp-day-checkbox" value="W"> W
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 3px; cursor: pointer; font-weight: normal; font-size: 12px;">
+                                <input type="checkbox" class="temp-day-checkbox" value="Th"> Th
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 3px; cursor: pointer; font-weight: normal; font-size: 12px;">
+                                <input type="checkbox" class="temp-day-checkbox" value="F"> F
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 3px; cursor: pointer; font-weight: normal; font-size: 12px;">
+                                <input type="checkbox" class="temp-day-checkbox" value="S"> S
+                            </label>
+                        </div>
+                    </div>
+                    <button type="button" class="success" onclick="addFacultyDayPair()" style="padding: 10px 15px;">
+                        ➕ Add
+                    </button>
+                </div>
+                <div style="margin-top: 10px;">
+                    <label style="font-size: 12px; margin-bottom: 5px;">Assign Faculty to Subject</label>
+                    <select id="subjectForFaculty" style="width: 100%;">
+                        <option value="0">All Subjects</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Merge Cells (Optional)</label>
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 12px;">Rows to span</label>
+                        <input type="number" id="rowSpan" min="1" max="5" value="1" style="width: 100%;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 12px;">Columns to span</label>
+                        <input type="number" id="colSpan" min="1" max="8" value="1" style="width: 100%;">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Section</label>
+                <input type="text" id="sectionName" placeholder="e.g., B.Sc. (N) VIII Sem.">
+            </div>
+            <div class="form-group">
+                <label>Time Slot</label>
+                <select id="timeSlot">
+                    <option value="0">9:00AM-10:00AM</option>
+                    <option value="1">10:00AM-11:00AM</option>
+                    <option value="2">11:00AM-12:00PM</option>
+                    <option value="3">12:00PM-1:00PM</option>
+                    <option value="4">LUNCH</option>
+                    <option value="5">1:00PM-2:00PM</option>
+                    <option value="6">2:00PM-3:00PM</option>
+                    <option value="7">3:00PM-4:00PM</option>
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button class="success" onclick="saveLecture()">💾 Save</button>
+                <button class="danger" onclick="deleteLecture()">🗑️ Delete</button>
+                <button class="secondary" onclick="closeModal()">❌ Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="facultyModal">
+        <div class="modal-content">
+            <h2>Manage Faculty</h2>
+            <div class="form-group">
+                <label>Add New Faculty</label>
+                <input type="text" id="newFacultyName" placeholder="Enter faculty name">
+            </div>
+            <button class="success" onclick="addFaculty()">➕ Add Faculty</button>
+            
+            <div class="form-group" style="margin-top: 20px;">
+                <label>Current Faculty List</label>
+                <div class="faculty-list" id="facultyList"></div>
+            </div>
+            
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button class="secondary" onclick="closeFacultyModal()">✅ Done</button>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="csvInput" accept=".csv" style="display: none;" onchange="handleCSVImport(event)">
+
+    <script>
+        let timetableData = [];
+        let facultyList = [];
+        let currentEditCell = null;
+        let currentFacultyDayPairs = []; // Store faculty-day assignments for current edit
+        let currentSubjects = []; // Store multiple subjects per cell
+        let mergedCells = {}; // Store merged cell information: {section-timeSlot: {rowspan: X, colspan: Y, content: "..."}}
+
+        const timeSlots = [
+            '9:00AM-10:00AM', 
+            '10:00AM-11:00AM', 
+            '11:00AM-12:00PM',
+            '12:00PM-1:00PM', 
+            'LUNCH',
+            '1:00PM-2:00PM', 
+            '2:00PM-3:00PM', 
+            '3:00PM-4:00PM'
+        ];
+
+        const sections = [
+            'B.Sc. (N) VIII Sem.',
+            'B.Sc. (N) VI Sem.',
+            'B.Sc. (N) V Sem.',
+            'B.Sc. (N) III Sem. (S-A)',
+            'B.Sc. (N) III Sem. (S-B)',
+            'B.Sc. (N) I Sem. (S-A)',
+            'B.Sc. (N) I Sem. (S-B)',
+            'GNM III Yr. (2023)',
+            'GNM I Yr. (2025)',
+            'ANM I Yr. (2025)',
+            'ANM II Yr. (2024)'
+        ];
+
+        function init() {
+            loadFromStorage();
+            if (facultyList.length === 0) loadDefaultFaculty();
+            if (timetableData.length === 0) loadDefaultTimetable();
+            renderTimetable();
+            updateStats();
+            populateFacultyDropdowns();
+            populateSectionFilter();
+        }
+
+        function loadDefaultFaculty() {
+            facultyList = [
+                'Mr. Henry',
+                'Ms. Sangeeta',
+                'Ms. Smriti',
+                'Ms. Neha',
+                'Ms. Mansi',
+                'Ms. Meenakshi',
+                'Ms. Aarti',
+                'Ms. Khushboo B',
+                'Ms. Madhu',
+                'Ms. Reshma',
+                'Ms. Ritika',
+                'Ms. Bobby',
+                'Ms. Khushboo G',
+                'Ms. Rajani',
+                'Ms. Kanchan',
+                'Ms. Manisha',
+                'Ms. Bhumika',
+                'Ms. Pooja',
+                'Ms. Kiran',
+                'Ms. Simran',
+                'Mr. Sachin',
+                'Mr. Prakul',
+                'Mrs. Chetana',
+                'Mrs. Neeta',
+                'Mrs. Astha',
+                'Ms. Prerna',
+                'Ms. Mansi'
+            ];
+            saveToStorage();
+        }
+
+        function loadDefaultTimetable() {
+            timetableData = [
+                // B.Sc. (N) VIII Sem - All Internship
+                {section: 'B.Sc. (N) VIII Sem.', timeSlot: 0, subjects: [{name: 'Internship', facultyDays: []}], clashing: false},
+                {section: 'B.Sc. (N) VIII Sem.', timeSlot: 1, subjects: [{name: 'Internship', facultyDays: []}], clashing: false},
+                {section: 'B.Sc. (N) VIII Sem.', timeSlot: 2, subjects: [{name: 'Internship', facultyDays: []}], clashing: false},
+                {section: 'B.Sc. (N) VIII Sem.', timeSlot: 3, subjects: [{name: 'Internship', facultyDays: []}], clashing: false},
+                {section: 'B.Sc. (N) VIII Sem.', timeSlot: 4, subjects: [{name: 'LUNCH', facultyDays: []}], clashing: false},
+                {section: 'B.Sc. (N) VIII Sem.', timeSlot: 5, subjects: [{name: 'Internship', facultyDays: []}], clashing: false},
+                {section: 'B.Sc. (N) VIII Sem.', timeSlot: 6, subjects: [{name: 'Internship', facultyDays: []}], clashing: false},
+                {section: 'B.Sc. (N) VIII Sem.', timeSlot: 7, subjects: [{name: 'Internship', facultyDays: []}], clashing: false},
+                
+                // B.Sc. (N) VI Sem
+                {section: 'B.Sc. (N) VI Sem.', timeSlot: 0, subjects: [{name: 'OBG', facultyDays: [{faculty: 'Ms. Reshma', days: []}]}], clashing: false},
+                {section: 'B.Sc. (N) VI Sem.', timeSlot: 1, subjects: [{name: 'NURSING MGMT', facultyDays: [{faculty: 'Mr. Henry', days: []}, {faculty: 'Ms. Smriti', days: []}]}], clashing: false},
+                {section: 'B.Sc. (N) VI Sem.', timeSlot: 2, subjects: [{name: 'OBG', facultyDays: [{faculty: 'Ms. Kanchan', days: []}]}], clashing: false},
+                {section: 'B.Sc. (N) VI Sem.', timeSlot: 3, subjects: [{name: 'MHN (Revision)', facultyDays: [{faculty: 'Ms. Kanchan', days: []}]}], clashing: false},
+                {section: 'B.Sc. (N) VI Sem.', timeSlot: 4, subjects: [{name: 'LUNCH', facultyDays: []}], clashing: false},
+                {section: 'B.Sc. (N) VI Sem.', timeSlot: 5, subjects: [
+                    {name: 'OBG', facultyDays: [{faculty: 'Ms. Sangeeta', days: []}]},
+                    {name: 'NURSING MGMT', facultyDays: [{faculty: 'Ms. Khushboo G', days: []}]}
+                ], clashing: false},
+                {section: 'B.Sc. (N) VI Sem.', timeSlot: 6, subjects: [{name: 'CHILD HEALTH NURSING', facultyDays: [{faculty: 'Mr. Sachin', days: []}]}], clashing: false},
+                
+                // B.Sc. (N) V Sem
+                {section: 'B.Sc. (N) V Sem.', timeSlot: 0, subjects: [{name: 'CHILD HEALTH NURSING-I', facultyDays: [{faculty: 'Ms. Ritika', days: []}]}], clashing: false},
+                {section: 'B.Sc. (N) V Sem.', timeSlot: 1, subjects: [{name: 'MHN-I', facultyDays: [{faculty: 'Mrs. Chetana', days: ['M', 'T', 'W']}, {faculty: 'Ms. Neha', days: ['M', 'T', 'W']}, {faculty: 'Ms. Manisha', days: ['Th', 'F', 'S']}]}], clashing: false},
+                {section: 'B.Sc. (N) V Sem.', timeSlot: 2, subjects: [
+                    {name: 'FORENSIC NURSING', facultyDays: [{faculty: 'Mrs. Rajni', days: ['M', 'T', 'W']}]},
+                    {name: 'NURSING EDUCATION', facultyDays: [{faculty: 'Ms. Khushboo G', days: ['Th', 'F', 'S']}]}
+                ], clashing: false},
+                {section: 'B.Sc. (N) V Sem.', timeSlot: 3, subjects: [{name: 'CHN-I', facultyDays: [{faculty: 'Ms. Khushboo G', days: ['M', 'T', 'W']}, {faculty: 'Mr. Henry', days: ['Th', 'F', 'S']}]}], clashing: false},
+                {section: 'B.Sc. (N) V Sem.', timeSlot: 4, subjects: [{name: 'LUNCH', facultyDays: []}], clashing: false},
+                {section: 'B.Sc. (N) V Sem.', timeSlot: 5, subjects: [{name: 'NURSING EDUCATION', facultyDays: [{faculty: 'Ms. Khushboo G', days: []}, {faculty: 'Ms. Reshma', days: []}]}], clashing: false},
+                {section: 'B.Sc. (N) V Sem.', timeSlot: 6, subjects: [{name: 'CHILD HEALTH NURSING-I', facultyDays: [{faculty: 'Ms. Meenakshi', days: ['M', 'T']}, {faculty: 'Ms. Smriti', days: ['W', 'Th']}, {faculty: 'Mrs. Neeta', days: ['F', 'S']}]}], clashing: false},
+                
+                // B.Sc. (N) III Sem. (S-A)
+                {section: 'B.Sc. (N) III Sem. (S-A)', timeSlot: 0, subjects: [{name: 'AHN-I', facultyDays: [{faculty: 'Ms. Manisha', days: []}]}], clashing: false},
+                {section: 'B.Sc. (N) III Sem. (S-A)', timeSlot: 1, subjects: [{name: 'PHARMACOLOGY', facultyDays: [{faculty: 'Ms. Prerna', days: ['M', 'T', 'W']}, {faculty: 'Ms. Simran', days: ['Th', 'F', 'S']}]}], clashing: false},
+                {section: 'B.Sc. (N) III Sem. (S-A)', timeSlot: 2, subjects: [{name: 'PATHOLOGY', facultyDays: [{faculty: 'Ms. Aarti', days: ['M', 'T', 'W']}, {faculty: 'Ms. Smriti', days: ['Th', 'F', 'S']}]}], clashing: false},
+                {section: 'B.Sc. (N) III Sem. (S-A)', timeSlot: 3, subjects: [{name: 'APP. MICROBIOLOGY', facultyDays: [{faculty: 'Mr. Prakul', days: ['M', 'T', 'W']}, {faculty: 'Mrs. Astha', days: ['Th', 'F', 'S']}]}], clashing: false},
+                {section: 'B.Sc. (N) III Sem. (S-A)', timeSlot: 4, subjects: [{name: 'LUNCH', facultyDays: []}], clashing: false},
+                {section: 'B.Sc. (N) III Sem. (S-A)', timeSlot: 5, subjects: [{name: 'AHN-I', facultyDays: [{faculty: 'Ms. Aarti', days: []}]}], clashing: false},
+                {section: 'B.Sc. (N) III Sem. (S-A)', timeSlot: 6, subjects: [{name: 'AHN-I', facultyDays: [{faculty: 'Ms. Khushboo B', days: []}]}], clashing: false},
+                
+                // B.Sc. (N) III Sem. (S-B)
+                {section: 'B.Sc. (N) III Sem. (S-B)', timeSlot: 0, subjects: [{name: 'AHN-I', facultyDays: [{faculty: 'Mr. Sachin', days: []}]}], clashing: false},
+                {section: 'B.Sc. (N) III Sem. (S-B)', timeSlot: 1, subjects: [{name: 'APP. MICROBIOLOGY', facultyDays: [{faculty: 'Ms. Pooja', days: []}]}], clashing: false},
+                {section: 'B.Sc. (N) III Sem. (S-B)', timeSlot: 2, subjects: [{name: 'PHARMACOLOGY', facultyDays: [{faculty: 'Ms. Simran', days: ['M', 'T', 'W']}, {faculty: 'Ms. Prerna', days: ['Th', 'F', 'S']}]}], clashing: false},
+                {section: 'B.Sc. (N) III Sem. (S-B)', timeSlot: 3, subjects: [
+                    {name: 'AHN-I', facultyDays: [{faculty: 'Ms. Reshma', days: ['M', 'T', 'W']}]},
+                    {name: 'PATHOLOGY', facultyDays: [{faculty: 'Ms. Mansi', days: ['Th', 'F', 'S']}]}
+                ], clashing: false},
+                {section: 'B.Sc. (N) III Sem. (S-B)', timeSlot: 4, subjects: [{name: 'LUNCH', facultyDays: []}], clashing: false},
+                {section: 'B.Sc. (N) III Sem. (S-B)', timeSlot: 5, subjects: [{name: 'APP. MICROBIOLOGY', facultyDays: [{faculty: 'Mrs. Astha', days: ['M', 'T', 'W']}, {faculty: 'Ms. Pooja', days: ['Th', 'F', 'S']}]}], clashing: false},
+                {section: 'B.Sc. (N) III Sem. (S-B)', timeSlot: 6, subjects: [{name: 'AHN-I', facultyDays: [{faculty: 'Ms. Aarti', days: []}]}], clashing: false},
+                
+                // B.Sc. (N) I Sem. (S-A)
+                {section: 'B.Sc. (N) I Sem. (S-A)', timeSlot: 0, subjects: [{name: 'APP. ANATOMY', facultyDays: [{faculty: 'Ms. Bhumika', days: []}]}], clashing: false},
+                {section: 'B.Sc. (N) I Sem. (S-A)', timeSlot: 1, subjects: [{name: 'APP. PHYSIOLOGY', facultyDays: [{faculty: 'Ms. Mansi', days: []}]}], clashing: false},
+                {section: 'B.Sc. (N) I Sem. (S-A)', timeSlot: 2, subjects: [{name: 'APP. PSYCHOLOGY', facultyDays: [{faculty: 'Mrs. Chetana', days: []}, {faculty: 'Ms. Neha', days: []}]}], clashing: false},
+                {section: 'B.Sc. (N) I Sem. (S-A)', timeSlot: 3, subjects: [{name: 'APP. PSYCHOLOGY', facultyDays: [{faculty: 'Ms. Ritika', days: []}]}], clashing: false},
+                {section: 'B.Sc. (N) I Sem. (S-A)', timeSlot: 4, subjects: [{name: 'LUNCH', facultyDays: []}], clashing: false},
+                {section: 'B.Sc. (N) I Sem. (S-A)', timeSlot: 5, subjects: [{name: 'APP. SOCIOLOGY', facultyDays: [{faculty: 'Mr. Henry', days: []}]}], clashing: false},
+                {section: 'B.Sc. (N) I Sem. (S-A)', timeSlot: 6, subjects: [
+                    {name: 'APP. SOCIOLOGY', facultyDays: [{faculty: 'Ms. Kiran', days: []}]},
+                    {name: 'COMMUNICATIVE ENG.', facultyDays: [{faculty: 'Ms. Sangeeta', days: ['M', 'T', 'W']}, {faculty: 'Ms. Rajni', days: ['Th', 'F', 'S']}]}
+                ], clashing: false},
+                
+                // B.Sc. (N) I Sem. (S-B)
+                {section: 'B.Sc. (N) I Sem. (S-B)', timeSlot: 0, subjects: [{name: 'APP. ANATOMY', facultyDays: [{faculty: 'Ms. Khushboo B', days: []}]}], clashing: false},
+                {section: 'B.Sc. (N) I Sem. (S-B)', timeSlot: 1, subjects: [{name: 'APPLIED ANATOMY', facultyDays: [{faculty: 'Ms. Neha', days: ['M', 'T', 'W']}, {faculty: 'Ms. Bhumika', days: ['Th', 'F', 'S']}]}], clashing: false},
+                {section: 'B.Sc. (N) I Sem. (S-B)', timeSlot: 2, subjects: [
+                    {name: 'APPLIED PHYSIOLOGY', facultyDays: [{faculty: 'Ms. Rajni', days: ['M', 'T', 'Th']}]},
+                    {name: 'COMMUNICATIVE ENG.', facultyDays: [{faculty: 'Ms. Rajni', days: ['F', 'S']}]}
+                ], clashing: false},
+                {section: 'B.Sc. (N) I Sem. (S-B)', timeSlot: 3, subjects: [{name: 'APP. PSYCHOLOGY', facultyDays: [{faculty: 'Ms. Neha', days: []}]}], clashing: false},
+                {section: 'B.Sc. (N) I Sem. (S-B)', timeSlot: 4, subjects: [{name: 'LUNCH', facultyDays: []}], clashing: false},
+                {section: 'B.Sc. (N) I Sem. (S-B)', timeSlot: 5, subjects: [{name: 'APP. PSYCHOLOGY', facultyDays: [{faculty: 'Mrs. Chetana', days: []}, {faculty: 'Ms. Ritika', days: []}]}], clashing: false},
+                {section: 'B.Sc. (N) I Sem. (S-B)', timeSlot: 6, subjects: [{name: 'APP. SOCIOLOGY', facultyDays: [{faculty: 'Mr. Henry', days: ['M', 'T', 'Th']}, {faculty: 'Ms. Madhu', days: ['F', 'S']}]}], clashing: false},
+                
+                // GNM III Yr. (2023)
+                {section: 'GNM III Yr. (2023)', timeSlot: 0, subjects: [{name: 'OBG', facultyDays: [{faculty: 'Ms. Meenakshi', days: []}]}], clashing: false},
+                {section: 'GNM III Yr. (2023)', timeSlot: 1, subjects: [{name: 'CHN', facultyDays: [{faculty: 'Ms. Kiran', days: []}]}], clashing: false},
+                {section: 'GNM III Yr. (2023)', timeSlot: 2, subjects: [{name: 'OBG', facultyDays: [{faculty: 'Ms. Pooja', days: []}]}], clashing: false},
+                {section: 'GNM III Yr. (2023)', timeSlot: 3, subjects: [{name: 'OBG', facultyDays: [{faculty: 'Ms. Sangeeta', days: []}, {faculty: 'Ms. Kanchan', days: []}]}], clashing: false},
+                {section: 'GNM III Yr. (2023)', timeSlot: 4, subjects: [{name: 'LUNCH', facultyDays: []}], clashing: false},
+                {section: 'GNM III Yr. (2023)', timeSlot: 5, subjects: [
+                    {name: 'NURSING ADMIN. & WARD MGMT', facultyDays: [{faculty: 'Ms. Rajani', days: ['M', 'T', 'W']}]},
+                    {name: 'RESEARCH STATISTICS', facultyDays: [{faculty: 'Ms. Khushboo B', days: ['Th', 'F', 'S']}]}
+                ], clashing: false},
+                {section: 'GNM III Yr. (2023)', timeSlot: 6, subjects: [{name: 'CHN', facultyDays: [{faculty: 'Ms. Simran', days: ['M', 'T', 'W']}, {faculty: 'Ms. Meenakshi', days: ['Th', 'F', 'S']}]}], clashing: false},
+                
+                // GNM I Yr. (2025)
+                {section: 'GNM I Yr. (2025)', timeSlot: 0, subjects: [{name: 'CHN', facultyDays: [{faculty: 'Mrs. Simran', days: []}]}], clashing: false},
+                {section: 'GNM I Yr. (2025)', timeSlot: 1, subjects: [{name: 'NURSING FOUNDATION', facultyDays: [{faculty: 'Ms. Rajani', days: []}]}], clashing: false},
+                {section: 'GNM I Yr. (2025)', timeSlot: 2, subjects: [
+                    {name: 'NUTRITION', facultyDays: [{faculty: 'Ms. Khushboo G', days: ['M', 'T', 'W']}]},
+                    {name: 'CHN', facultyDays: [{faculty: 'Ms. Kiran', days: ['Th', 'F', 'S']}]}
+                ], clashing: false},
+                {section: 'GNM I Yr. (2025)', timeSlot: 3, subjects: [{name: 'PSYCHOLOGY', facultyDays: [{faculty: 'Ms. Bobby', days: []}]}], clashing: false},
+                {section: 'GNM I Yr. (2025)', timeSlot: 4, subjects: [{name: 'LUNCH', facultyDays: []}], clashing: false},
+                {section: 'GNM I Yr. (2025)', timeSlot: 5, subjects: [
+                    {name: 'APP. SOCIOLOGY', facultyDays: [{faculty: 'Ms. Kiran', days: []}]},
+                    {name: 'MICROBIOLOGY', facultyDays: [{faculty: 'Ms. Manisha', days: []}]}
+                ], clashing: false},
+                {section: 'GNM I Yr. (2025)', timeSlot: 6, subjects: [
+                    {name: 'CHN', facultyDays: [{faculty: 'Ms. Bobby', days: ['M', 'T', 'W']}]},
+                    {name: 'ANAT. & PHYSIO.', facultyDays: [{faculty: 'Ms. Simran', days: ['Th', 'F', 'S']}]}
+                ], clashing: false},
+                
+                // ANM I Yr. (2025)
+                {section: 'ANM I Yr. (2025)', timeSlot: 0, subjects: [{name: 'PHC', facultyDays: [{faculty: 'Ms. Mansi', days: []}]}], clashing: false},
+                {section: 'ANM I Yr. (2025)', timeSlot: 1, subjects: [{name: 'HEALTH PROMOTION', facultyDays: [{faculty: 'Ms. Prakul', days: []}]}], clashing: false},
+                {section: 'ANM I Yr. (2025)', timeSlot: 2, subjects: [{name: 'HEALTH PROMOTION', facultyDays: [{faculty: 'Ms. Prakul', days: []}]}], clashing: false},
+                {section: 'ANM I Yr. (2025)', timeSlot: 3, subjects: [{name: 'CHN', facultyDays: [{faculty: 'Ms. Meenakshi', days: []}]}], clashing: false},
+                {section: 'ANM I Yr. (2025)', timeSlot: 4, subjects: [{name: 'LUNCH', facultyDays: []}], clashing: false},
+                {section: 'ANM I Yr. (2025)', timeSlot: 5, subjects: [{name: 'Child Health Nursing', facultyDays: [{faculty: 'Ms. Smriti', days: []}]}], clashing: false},
+                {section: 'ANM I Yr. (2025)', timeSlot: 6, subjects: [{name: 'PHC', facultyDays: [{faculty: 'Ms. Madhu', days: []}]}], clashing: false},
+                
+                // ANM II Yr. (2024)
+                {section: 'ANM II Yr. (2024)', timeSlot: 0, subjects: [{name: 'HCM', facultyDays: [{faculty: 'Ms. Madhu', days: []}]}], clashing: false},
+                {section: 'ANM II Yr. (2024)', timeSlot: 1, subjects: [{name: 'MIDWIFERY', facultyDays: [{faculty: 'Ms. Meenakshi', days: []}]}], clashing: false},
+                {section: 'ANM II Yr. (2024)', timeSlot: 2, subjects: [{name: 'MIDWIFERY', facultyDays: [{faculty: 'Ms. Bhumika', days: []}]}], clashing: false},
+                {section: 'ANM II Yr. (2024)', timeSlot: 3, subjects: [{name: 'HCM', facultyDays: [{faculty: 'Ms. Bhumika', days: []}]}], clashing: false},
+                {section: 'ANM II Yr. (2024)', timeSlot: 4, subjects: [{name: 'LUNCH', facultyDays: []}], clashing: false},
+                {section: 'ANM II Yr. (2024)', timeSlot: 5, subjects: [{name: 'MIDWIFERY', facultyDays: [{faculty: 'Ms. Mansi', days: []}]}], clashing: false},
+                {section: 'ANM II Yr. (2024)', timeSlot: 6, subjects: [{name: 'HCM', facultyDays: [{faculty: 'Ms. Ritika', days: []}]}], clashing: false},
+            ];
+            saveToStorage();
+        }
+
+        function renderTimetable() {
+            const tbody = document.getElementById('timetableBody');
+            tbody.innerHTML = '';
+
+            sections.forEach(section => {
+                const row = document.createElement('tr');
+                const sectionCell = document.createElement('td');
+                sectionCell.className = 'time-col';
+                sectionCell.textContent = section;
+                row.appendChild(sectionCell);
+
+                timeSlots.forEach((time, timeIndex) => {
+                    const cell = document.createElement('td');
+                    cell.dataset.section = section;
+                    cell.dataset.timeSlot = timeIndex;
+                    
+                    const lectures = timetableData.filter(
+                        l => l.section === section && l.timeSlot === timeIndex
+                    );
+
+                    if (lectures.length > 0) {
+                        lectures.forEach(lecture => {
+                            // Check if this is a LUNCH slot
+                            if (lecture.subjects && lecture.subjects.length > 0) {
+                                const firstSubject = lecture.subjects[0];
+                                if (firstSubject.name && firstSubject.name.toUpperCase() === 'LUNCH') {
+                                    cell.classList.add('lunch-cell');
+                                    cell.textContent = 'LUNCH';
+                                    return;
+                                }
+                            }
+                            
+                            // Render subjects
+                            if (lecture.subjects && lecture.subjects.length > 0) {
+                                const isSingleFaculty = lecture.subjects.length === 1 && 
+                                                       lecture.subjects[0].facultyDays && 
+                                                       lecture.subjects[0].facultyDays.length === 1;
+                                
+                                if (isSingleFaculty) {
+                                    cell.classList.add('single-faculty-cell');
+                                }
+                                
+                                lecture.subjects.forEach((subj, index) => {
+                                    const subjectDiv = document.createElement('div');
+                                    subjectDiv.className = 'subject-block';
+                                    
+                                    let facultyDaysHTML = '';
+                                    if (subj.facultyDays && subj.facultyDays.length > 0) {
+                                        const allFaculty = subj.facultyDays.map(fd => fd.faculty);
+                                        
+                                        facultyDaysHTML = subj.facultyDays.map(fd => {
+                                            const daysStr = fd.days && fd.days.length > 0 ? `: ${fd.days.join(', ')}` : '';
+                                            return `${fd.faculty}${daysStr}`;
+                                        }).join('<br>');
+                                    }
+                                    
+                                    subjectDiv.innerHTML = `
+                                        <div class="lecture-subject">${subj.name}</div>
+                                        <div class="lecture-faculty">${facultyDaysHTML}</div>
+                                    `;
+                                    cell.appendChild(subjectDiv);
+                                });
+                                
+                                // Add "Add Subject" button
+                                const addBtn = document.createElement('button');
+                                addBtn.className = 'add-subject-btn';
+                                addBtn.innerHTML = '➕ Add Subject';
+                                addBtn.onclick = (e) => {
+                                    e.stopPropagation();
+                                    openAddSubjectToCell(section, timeIndex);
+                                };
+                                cell.appendChild(addBtn);
+                                
+                                cell.classList.add(lecture.clashing ? 'clashing' : 'no-clashing');
+                            }
+                            
+                            // Backward compatibility for old structure
+                            else if (lecture.subject) {
+                                const lectureDiv = document.createElement('div');
+                                lectureDiv.className = 'lecture-cell';
+                                
+                                let facultyDaysHTML = '';
+                                if (lecture.facultyDays && lecture.facultyDays.length > 0) {
+                                    const allFaculty = lecture.facultyDays.map(fd => fd.faculty);
+                                    
+                                    facultyDaysHTML = lecture.facultyDays.map(fd => {
+                                        const daysStr = fd.days && fd.days.length > 0 ? `: ${fd.days.join(', ')}` : '';
+                                        return `${fd.faculty}${daysStr}`;
+                                    }).join('<br>');
+                                }
+                                
+                                lectureDiv.innerHTML = `
+                                    <div class="lecture-subject">${lecture.subject}</div>
+                                    <div class="lecture-faculty">${facultyDaysHTML}</div>
+                                `;
+                                cell.appendChild(lectureDiv);
+                                cell.classList.add(lecture.clashing ? 'clashing' : 'no-clashing');
+                            }
+                        });
+                    } else {
+                        cell.classList.add('empty-cell');
+                        cell.textContent = 'Click to add';
+                    }
+
+                    cell.onclick = () => openEditModal(section, timeIndex);
+                    row.appendChild(cell);
+                });
+
+                tbody.appendChild(row);
+            });
+
+            updateSummaryTable();
+            applyFilters();
+        }
+
+        function addSubject() {
+            const subjectName = document.getElementById('newSubjectName').value.trim();
+            
+            if (!subjectName) {
+                alert('Please enter a subject name');
+                return;
+            }
+            
+            if (!currentFacultyDayPairs || currentFacultyDayPairs.length === 0) {
+                alert('Please add at least one faculty member for this subject');
+                return;
+            }
+            
+            currentSubjects.push({
+                name: subjectName,
+                facultyDays: JSON.parse(JSON.stringify(currentFacultyDayPairs))
+            });
+            
+            // Clear inputs
+            document.getElementById('newSubjectName').value = '';
+            currentFacultyDayPairs = [];
+            
+            renderSubjectsList();
+            renderFacultyDaysList();
+        }
+
+        function removeSubject(index) {
+            currentSubjects.splice(index, 1);
+            renderSubjectsList();
+        }
+
+        function renderSubjectsList() {
+            const container = document.getElementById('subjectsList');
+            container.innerHTML = '';
+            
+            if (currentSubjects.length === 0) {
+                container.innerHTML = '<div style="color: #6c757d; font-style: italic; font-size: 13px;">No subjects added yet</div>';
+                return;
+            }
+            
+            currentSubjects.forEach((subj, index) => {
+                const item = document.createElement('div');
+                item.className = 'faculty-day-item';
+                item.style.background = '#f0f8ff';
+                item.style.borderColor = '#4a90e2';
+                
+                const facultyList = subj.facultyDays.map(fd => {
+                    const days = fd.days && fd.days.length > 0 ? `: ${fd.days.join(', ')}` : '';
+                    return fd.faculty + days;
+                }).join(', ');
+                
+                item.innerHTML = `
+                    <div>
+                        <span class="faculty-part" style="color: #2c3e50;">${subj.name}</span><br>
+                        <span style="font-size: 11px; color: #666;">${facultyList}</span>
+                    </div>
+                    <button onclick="removeSubject(${index})">×</button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function addFacultyDayPair() {
+            const facultySelect = document.getElementById('facultySelectForAdd');
+            const selectedFaculty = facultySelect.value;
+            
+            if (!selectedFaculty) {
+                alert('Please select a faculty member');
+                return;
+            }
+            
+            const selectedDays = [];
+            document.querySelectorAll('.temp-day-checkbox:checked').forEach(cb => {
+                selectedDays.push(cb.value);
+            });
+            
+            // Days are now optional - can be empty
+            
+            // Check if this faculty is already added
+            const exists = currentFacultyDayPairs.find(fd => fd.faculty === selectedFaculty);
+            if (exists) {
+                alert('This faculty member is already added. Remove them first to change days.');
+                return;
+            }
+            
+            currentFacultyDayPairs.push({
+                faculty: selectedFaculty,
+                days: selectedDays
+            });
+            
+            renderFacultyDaysList();
+            
+            // Clear selections
+            document.querySelectorAll('.temp-day-checkbox').forEach(cb => cb.checked = false);
+        }
+
+        function removeFacultyDayPair(index) {
+            currentFacultyDayPairs.splice(index, 1);
+            renderFacultyDaysList();
+        }
+
+        function renderFacultyDaysList() {
+            const container = document.getElementById('facultyDaysList');
+            container.innerHTML = '';
+            
+            if (currentFacultyDayPairs.length === 0) {
+                container.innerHTML = '<div style="color: #6c757d; font-style: italic; font-size: 13px;">No faculty assigned yet</div>';
+                return;
+            }
+            
+            currentFacultyDayPairs.forEach((fd, index) => {
+                const item = document.createElement('div');
+                item.className = 'faculty-day-item';
+                
+                const daysDisplay = fd.days && fd.days.length > 0 
+                    ? `<span class="days-part">: ${fd.days.join(', ')}</span>` 
+                    : '<span style="color: #6c757d; font-style: italic; font-size: 12px;">(No specific days)</span>';
+                
+                item.innerHTML = `
+                    <div>
+                        <span class="faculty-part">${fd.faculty}</span>
+                        ${daysDisplay}
+                    </div>
+                    <button onclick="removeFacultyDayPair(${index})">×</button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function openAddSubjectToCell(section, timeSlot) {
+            currentEditCell = {section, timeSlot, isAddingToExisting: true};
+            
+            const lecture = timetableData.find(l => l.section === section && l.timeSlot === timeSlot);
+            
+            document.getElementById('modalTitle').textContent = 'Add Another Subject to This Cell';
+            document.getElementById('subjectName').value = '';
+            currentFacultyDayPairs = [];
+            currentSubjects = [];
+            
+            document.getElementById('sectionName').value = section;
+            document.getElementById('timeSlot').value = timeSlot;
+            document.getElementById('sectionName').disabled = true;
+            document.getElementById('timeSlot').disabled = true;
+            
+            renderFacultyDaysList();
+            renderSubjectsList();
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function openEditModal(section, timeSlot) {
+            currentEditCell = {section, timeSlot, isAddingToExisting: false};
+            const lecture = timetableData.find(l => l.section === section && l.timeSlot === timeSlot);
+
+            document.getElementById('sectionName').disabled = false;
+            document.getElementById('timeSlot').disabled = false;
+
+            if (lecture) {
+                document.getElementById('modalTitle').textContent = 'Edit Lecture';
+                
+                // Load subjects
+                if (lecture.subjects && lecture.subjects.length > 0) {
+                    currentSubjects = JSON.parse(JSON.stringify(lecture.subjects));
+                } else if (lecture.subject) {
+                    // Backward compatibility
+                    const facultyDays = lecture.facultyDays || [];
+                    currentSubjects = [{
+                        name: lecture.subject,
+                        facultyDays: facultyDays
+                    }];
+                } else {
+                    currentSubjects = [];
+                }
+                
+                currentFacultyDayPairs = [];
+                
+                document.getElementById('sectionName').value = lecture.section;
+                document.getElementById('timeSlot').value = lecture.timeSlot;
+            } else {
+                document.getElementById('modalTitle').textContent = 'Add Lecture';
+                currentSubjects = [];
+                currentFacultyDayPairs = [];
+                document.getElementById('sectionName').value = section;
+                document.getElementById('timeSlot').value = timeSlot;
+            }
+
+            renderSubjectsList();
+            renderFacultyDaysList();
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function openAddLectureModal() {
+            currentEditCell = null;
+            document.getElementById('modalTitle').textContent = 'Add New Lecture';
+            currentSubjects = [];
+            currentFacultyDayPairs = [];
+            document.getElementById('sectionName').value = sections[0];
+            document.getElementById('timeSlot').value = 0;
+            document.getElementById('sectionName').disabled = false;
+            document.getElementById('timeSlot').disabled = false;
+            renderSubjectsList();
+            renderFacultyDaysList();
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function saveLecture() {
+            const section = document.getElementById('sectionName').value;
+            const timeSlot = parseInt(document.getElementById('timeSlot').value);
+
+            if (currentSubjects.length === 0) {
+                alert('Please add at least one subject');
+                return;
+            }
+
+            // If we're adding to existing cell
+            if (currentEditCell && currentEditCell.isAddingToExisting) {
+                const existingLecture = timetableData.find(l => l.section === section && l.timeSlot === timeSlot);
+                if (existingLecture && existingLecture.subjects) {
+                    existingLecture.subjects.push(...currentSubjects);
+                }
+            } else {
+                // Remove existing lecture at this position
+                timetableData = timetableData.filter(l => !(l.section === section && l.timeSlot === timeSlot));
+                
+                // Add new lecture with subjects
+                timetableData.push({
+                    section, 
+                    timeSlot, 
+                    subjects: JSON.parse(JSON.stringify(currentSubjects)),
+                    clashing: false // Will be recalculated below
+                });
+            }
+
+            // Recalculate clashing for ALL lectures
+            recalculateAllClashing();
+
+            saveToStorage();
+            renderTimetable();
+            updateStats();
+            closeModal();
+        }
+
+        function deleteLecture() {
+            if (!currentEditCell) return;
+            if (confirm('Are you sure you want to delete this lecture?')) {
+                timetableData = timetableData.filter(
+                    l => !(l.section === currentEditCell.section && l.timeSlot === currentEditCell.timeSlot)
+                );
+                
+                // Recalculate clashing for ALL lectures after deletion
+                recalculateAllClashing();
+                
+                saveToStorage();
+                renderTimetable();
+                updateStats();
+                closeModal();
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').classList.remove('active');
+            currentEditCell = null;
+        }
+
+        function recalculateAllClashing() {
+            // Group lectures by timeSlot
+            const lecturesByTimeSlot = {};
+            timetableData.forEach(lecture => {
+                if (!lecturesByTimeSlot[lecture.timeSlot]) {
+                    lecturesByTimeSlot[lecture.timeSlot] = [];
+                }
+                lecturesByTimeSlot[lecture.timeSlot].push(lecture);
+            });
+
+            // Check each lecture for clashing
+            timetableData.forEach(lecture => {
+                const sameTimeLectures = lecturesByTimeSlot[lecture.timeSlot] || [];
+                lecture.clashing = false;
+
+                // Get all faculty-day pairs from current lecture (from all subjects)
+                const currentFacultyDays = [];
+                if (lecture.subjects && lecture.subjects.length > 0) {
+                    lecture.subjects.forEach(subj => {
+                        if (subj.facultyDays && subj.facultyDays.length > 0) {
+                            subj.facultyDays.forEach(fd => {
+                                currentFacultyDays.push({
+                                    faculty: fd.faculty,
+                                    days: fd.days || []
+                                });
+                            });
+                        }
+                    });
+                } else if (lecture.facultyDays && lecture.facultyDays.length > 0) {
+                    // Backward compatibility
+                    lecture.facultyDays.forEach(fd => {
+                        currentFacultyDays.push({
+                            faculty: fd.faculty,
+                            days: fd.days || []
+                        });
+                    });
+                }
+
+                // Check if any faculty appears in other lectures at same time WITH overlapping days
+                for (const otherLecture of sameTimeLectures) {
+                    if (otherLecture === lecture) continue;
+
+                    const otherFacultyDays = [];
+                    if (otherLecture.subjects && otherLecture.subjects.length > 0) {
+                        otherLecture.subjects.forEach(subj => {
+                            if (subj.facultyDays && subj.facultyDays.length > 0) {
+                                subj.facultyDays.forEach(fd => {
+                                    otherFacultyDays.push({
+                                        faculty: fd.faculty,
+                                        days: fd.days || []
+                                    });
+                                });
+                            }
+                        });
+                    } else if (otherLecture.facultyDays && otherLecture.facultyDays.length > 0) {
+                        // Backward compatibility
+                        otherLecture.facultyDays.forEach(fd => {
+                            otherFacultyDays.push({
+                                faculty: fd.faculty,
+                                days: fd.days || []
+                            });
+                        });
+                    }
+
+                    // Check for faculty overlap with day conflicts
+                    for (const currentFD of currentFacultyDays) {
+                        for (const otherFD of otherFacultyDays) {
+                            if (currentFD.faculty === otherFD.faculty) {
+                                // Same faculty found - check if days overlap
+                                
+                                // If either has no specific days, it's a clash
+                                if (currentFD.days.length === 0 || otherFD.days.length === 0) {
+                                    lecture.clashing = true;
+                                    break;
+                                }
+                                
+                                // Check if any days overlap
+                                const hasOverlap = currentFD.days.some(day => otherFD.days.includes(day));
+                                if (hasOverlap) {
+                                    lecture.clashing = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (lecture.clashing) break;
+                    }
+
+                    if (lecture.clashing) break;
+                }
+            });
+        }
+
+        function checkClashing(facultyArray, timeSlot) {
+            const facultyList = Array.isArray(facultyArray) ? facultyArray : [facultyArray];
+            const lecturesAtSameTime = timetableData.filter(l => l.timeSlot === timeSlot);
+            
+            for (const faculty of facultyList) {
+                const count = lecturesAtSameTime.filter(l => {
+                    const lectureFaculty = Array.isArray(l.faculty) ? l.faculty : [l.faculty];
+                    return lectureFaculty.includes(faculty);
+                }).length;
+                
+                if (count > 0) return true;
+            }
+            return false;
+        }
+
+        function manageFaculty() {
+            renderFacultyList();
+            document.getElementById('facultyModal').classList.add('active');
+        }
+
+        function renderFacultyList() {
+            const list = document.getElementById('facultyList');
+            list.innerHTML = '';
+            facultyList.forEach((faculty, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'faculty-tag';
+                tag.innerHTML = `${faculty}<button onclick="removeFaculty(${index})">×</button>`;
+                list.appendChild(tag);
+            });
+        }
+
+        function addFaculty() {
+            const name = document.getElementById('newFacultyName').value.trim();
+            if (name && !facultyList.includes(name)) {
+                facultyList.push(name);
+                document.getElementById('newFacultyName').value = '';
+                renderFacultyList();
+                populateFacultyDropdowns();
+                saveToStorage();
+            }
+        }
+
+        function removeFaculty(index) {
+            if (confirm('Remove this faculty member?')) {
+                facultyList.splice(index, 1);
+                renderFacultyList();
+                populateFacultyDropdowns();
+                saveToStorage();
+            }
+        }
+
+        function closeFacultyModal() {
+            document.getElementById('facultyModal').classList.remove('active');
+        }
+
+        function populateFacultyDropdowns() {
+            const filter = document.getElementById('facultyFilter');
+            const modal = document.getElementById('facultySelectForAdd');
+            
+            filter.innerHTML = '<option value="">All Faculty</option>';
+            modal.innerHTML = '<option value="">Select faculty...</option>';
+            
+            facultyList.sort().forEach(faculty => {
+                filter.appendChild(new Option(faculty, faculty));
+                modal.appendChild(new Option(faculty, faculty));
+            });
+        }
+
+        function populateSectionFilter() {
+            const filter = document.getElementById('sectionFilter');
+            filter.innerHTML = '<option value="">All Sections</option>';
+            sections.forEach(section => filter.appendChild(new Option(section, section)));
+        }
+
+        function applyFilters() {
+            const facultyFilter = document.getElementById('facultyFilter').value;
+            const sectionFilter = document.getElementById('sectionFilter').value;
+            const subjectFilter = document.getElementById('subjectFilter').value.toLowerCase();
+
+            document.querySelectorAll('#timetableBody td:not(.time-col)').forEach(cell => {
+                cell.classList.remove('highlight');
+            });
+
+            if (facultyFilter) {
+                document.querySelectorAll('#timetableBody .lecture-cell').forEach(lectureDiv => {
+                    const facultyList = lectureDiv.dataset.faculty.split(',');
+                    if (facultyList.includes(facultyFilter)) {
+                        lectureDiv.parentElement.classList.add('highlight');
+                    }
+                });
+            }
+
+            if (!facultyFilter && (sectionFilter || subjectFilter)) {
+                timetableData.forEach(lecture => {
+                    if ((!sectionFilter || lecture.section === sectionFilter) &&
+                        (!subjectFilter || lecture.subject.toLowerCase().includes(subjectFilter))) {
+                        const cell = document.querySelector(
+                            `td[data-section="${lecture.section}"][data-time-slot="${lecture.timeSlot}"]`
+                        );
+                        if (cell) cell.classList.add('highlight');
+                    }
+                });
+            }
+        }
+
+        function clearFilters() {
+            document.getElementById('facultyFilter').value = '';
+            document.getElementById('sectionFilter').value = '';
+            document.getElementById('subjectFilter').value = '';
+            applyFilters();
+        }
+
+        document.getElementById('facultyFilter').addEventListener('change', applyFilters);
+        document.getElementById('sectionFilter').addEventListener('change', applyFilters);
+        document.getElementById('subjectFilter').addEventListener('input', applyFilters);
+
+        function updateSummaryTable() {
+            const summaryBody = document.getElementById('summaryTableBody');
+            summaryBody.innerHTML = '';
+
+            const facultyData = {};
+            timetableData.forEach(lecture => {
+                if (lecture.facultyDays && lecture.facultyDays.length > 0) {
+                    lecture.facultyDays.forEach(fd => {
+                        if (!facultyData[fd.faculty]) {
+                            facultyData[fd.faculty] = {count: 0, subjects: new Set()};
+                        }
+                        facultyData[fd.faculty].count++;
+                        facultyData[fd.faculty].subjects.add(lecture.subject);
+                    });
+                } else if (lecture.faculty) {
+                    // Backward compatibility
+                    const facultyArray = Array.isArray(lecture.faculty) ? lecture.faculty : [lecture.faculty];
+                    facultyArray.forEach(faculty => {
+                        if (!facultyData[faculty]) {
+                            facultyData[faculty] = {count: 0, subjects: new Set()};
+                        }
+                        facultyData[faculty].count++;
+                        facultyData[faculty].subjects.add(lecture.subject);
+                    });
+                }
+            });
+
+            Object.keys(facultyData).sort().forEach(faculty => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="faculty-name">${faculty}</td>
+                    <td class="lecture-count">${facultyData[faculty].count}</td>
+                    <td class="subject-list">${Array.from(facultyData[faculty].subjects).map(s => 
+                        `<span class="subject-item">${s.toUpperCase()}</span>`
+                    ).join(', ')}</td>
+                `;
+                summaryBody.appendChild(row);
+            });
+
+            if (Object.keys(facultyData).length === 0) {
+                summaryBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#6c757d;font-style:italic;">No lectures added yet</td></tr>';
+            }
+        }
+
+        function updateStats() {
+            const totalLectures = timetableData.length;
+            const allFaculty = new Set();
+            timetableData.forEach(l => {
+                if (l.facultyDays && l.facultyDays.length > 0) {
+                    l.facultyDays.forEach(fd => allFaculty.add(fd.faculty));
+                } else if (l.faculty) {
+                    const facultyArray = Array.isArray(l.faculty) ? l.faculty : [l.faculty];
+                    facultyArray.forEach(f => allFaculty.add(f));
+                }
+            });
+            const uniqueFaculty = allFaculty.size;
+            const clashingLectures = timetableData.filter(l => l.clashing).length;
+            
+            const facultyCounts = {};
+            timetableData.forEach(l => {
+                if (l.facultyDays && l.facultyDays.length > 0) {
+                    l.facultyDays.forEach(fd => {
+                        facultyCounts[fd.faculty] = (facultyCounts[fd.faculty] || 0) + 1;
+                    });
+                } else if (l.faculty) {
+                    const facultyArray = Array.isArray(l.faculty) ? l.faculty : [l.faculty];
+                    facultyArray.forEach(faculty => {
+                        facultyCounts[faculty] = (facultyCounts[faculty] || 0) + 1;
+                    });
+                }
+            });
+            
+            const maxLectures = Math.max(...Object.values(facultyCounts), 0);
+            const busiestFaculty = Object.keys(facultyCounts).find(f => facultyCounts[f] === maxLectures) || 'N/A';
+
+            document.getElementById('stats').innerHTML = `
+                <div class="stat-card"><h3>Total Lectures</h3><div class="value">${totalLectures}</div></div>
+                <div class="stat-card"><h3>Active Faculty</h3><div class="value">${uniqueFaculty}</div></div>
+                <div class="stat-card"><h3>Clashing Schedules</h3><div class="value" style="color:${clashingLectures > 0 ? '#dc3545' : '#28a745'}">${clashingLectures}</div></div>
+                <div class="stat-card"><h3>Busiest Faculty</h3><div class="value" style="font-size:18px;">${busiestFaculty}</div><small>${maxLectures} lectures</small></div>
+            `;
+        }
+
+        function generateExportTable() {
+            const exportTable = document.getElementById('exportTable');
+            exportTable.innerHTML = `
+                <thead><tr>
+                    <th class="time-col">Class / Time</th>
+                    ${timeSlots.map(time => `<th class="time-col">${time}</th>`).join('')}
+                </tr></thead>
+            `;
+            
+            const tbody = document.createElement('tbody');
+            sections.forEach(section => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td class="time-col">${section}</td>`;
+                
+                timeSlots.forEach((time, timeIndex) => {
+                    const lectures = timetableData.filter(l => l.section === section && l.timeSlot === timeIndex);
+                    const cell = document.createElement('td');
+                    
+                    if (lectures.length > 0) {
+                        cell.innerHTML = lectures.map(lecture => {
+                            let facultyDaysHTML = '';
+                            if (lecture.facultyDays && lecture.facultyDays.length > 0) {
+                                facultyDaysHTML = lecture.facultyDays.map(fd => {
+                                    const daysStr = fd.days && fd.days.length > 0 ? `: ${fd.days.join(', ')}` : '';
+                                    return `${fd.faculty}${daysStr}`;
+                                }).join('<br>');
+                            } else if (lecture.faculty) {
+                                const facultyArray = Array.isArray(lecture.faculty) ? lecture.faculty : [lecture.faculty];
+                                facultyDaysHTML = facultyArray.join(', ');
+                            }
+                            
+                            return `
+                                <div class="lecture-subject">${lecture.subject}</div>
+                                <div class="lecture-faculty">${facultyDaysHTML}</div>
+                            `;
+                        }).join('');
+                    } else {
+                        cell.textContent = '-';
+                    }
+                    row.appendChild(cell);
+                });
+                tbody.appendChild(row);
+            });
+            exportTable.appendChild(tbody);
+        }
+
+        function exportToPDF() {
+            generateExportTable();
+            const element = document.getElementById('exportContent');
+            const opt = {
+                margin: [8, 8, 8, 8],
+                filename: `timetable_${new Date().toISOString().split('T')[0]}.pdf`,
+                image: {type: 'jpeg', quality: 0.98},
+                html2canvas: {scale: 1.5, useCORS: true},
+                jsPDF: {unit: 'mm', format: 'a4', orientation: 'landscape'}
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        function exportToWord() {
+            generateExportTable();
+            const element = document.getElementById('exportContent');
+            const content = `
+                <!DOCTYPE html>
+                <html><head><meta charset="UTF-8">
+                <style>
+                    @page {size: A4 landscape; margin: 1cm;}
+                    body {font-family: Arial;}
+                    .export-header {text-align: center; background: #667eea; color: white; padding: 15px; margin-bottom: 20px;}
+                    table {width: 100%; border-collapse: collapse; font-size: 11px;}
+                    th, td {border: 1px solid #333; padding: 8px 6px; text-align: center; vertical-align: top;}
+                    th {background: #495057; color: white;}
+                    .time-col {background: #e9ecef; font-weight: 600;}
+                    .lecture-subject {font-weight: 700; text-transform: uppercase; margin-bottom: 3px;}
+                    .lecture-faculty {font-size: 10px; color: #666;}
+                </style>
+                </head><body>${element.innerHTML}</body></html>
+            `;
+            
+            const blob = new Blob(['\ufeff', content], {type: 'application/msword'});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `timetable_${new Date().toISOString().split('T')[0]}.doc`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportToCSV() {
+            let csv = 'Section,Time Slot,Subject,Faculty:Days,Clashing\n';
+            timetableData.forEach(lecture => {
+                let facultyDaysStr = '';
+                if (lecture.facultyDays && lecture.facultyDays.length > 0) {
+                    facultyDaysStr = lecture.facultyDays.map(fd => {
+                        const daysStr = fd.days && fd.days.length > 0 ? `:${fd.days.join(',')}` : '';
+                        return `${fd.faculty}${daysStr}`;
+                    }).join('; ');
+                } else if (lecture.faculty) {
+                    const facultyArray = Array.isArray(lecture.faculty) ? lecture.faculty : [lecture.faculty];
+                    facultyDaysStr = facultyArray.join('; ');
+                }
+                
+                csv += `"${lecture.section}","${timeSlots[lecture.timeSlot]}","${lecture.subject}","${facultyDaysStr}",${lecture.clashing}\n`;
+            });
+
+            const blob = new Blob([csv], {type: 'text/csv'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `timetable_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importFromCSV() {
+            document.getElementById('csvInput').click();
+        }
+
+        function handleCSVImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const lines = e.target.result.split('\n').slice(1);
+                timetableData = [];
+                
+                lines.forEach(line => {
+                    if (!line.trim()) return;
+                    const matches = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g);
+                    if (!matches || matches.length < 5) return;
+                    
+                    const section = matches[0].replace(/"/g, '');
+                    const timeSlotText = matches[1].replace(/"/g, '');
+                    const subject = matches[2].replace(/"/g, '');
+                    const facultyDaysText = matches[3].replace(/"/g, '');
+                    
+                    const timeSlot = timeSlots.indexOf(timeSlotText);
+                    if (timeSlot === -1) return;
+                    
+                    // Parse faculty:days format
+                    const facultyDays = [];
+                    facultyDaysText.split(';').forEach(part => {
+                        const trimmed = part.trim();
+                        if (!trimmed) return;
+                        
+                        if (trimmed.includes(':')) {
+                            const [faculty, daysStr] = trimmed.split(':');
+                            const days = daysStr.split(',').map(d => d.trim()).filter(d => d);
+                            facultyDays.push({faculty: faculty.trim(), days});
+                        } else {
+                            facultyDays.push({faculty: trimmed, days: []});
+                        }
+                    });
+                    
+                    if (facultyDays.length > 0) {
+                        timetableData.push({
+                            section, 
+                            timeSlot, 
+                            subject, 
+                            facultyDays,
+                            clashing: false
+                        });
+                    }
+                });
+
+                // Recalculate clashing for all imported lectures
+                recalculateAllClashing();
+
+                saveToStorage();
+                renderTimetable();
+                updateStats();
+                alert('Timetable imported successfully!');
+            };
+            
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function resetTimetable() {
+            if (confirm('This will delete all lectures. Are you sure?')) {
+                timetableData = [];
+                saveToStorage();
+                renderTimetable();
+                updateStats();
+            }
+        }
+
+        function saveToStorage() {
+            localStorage.setItem('timetableData', JSON.stringify(timetableData));
+            localStorage.setItem('facultyList', JSON.stringify(facultyList));
+        }
+
+        function loadFromStorage() {
+            const savedData = localStorage.getItem('timetableData');
+            const savedFaculty = localStorage.getItem('facultyList');
+            if (savedData) timetableData = JSON.parse(savedData);
+            if (savedFaculty) facultyList = JSON.parse(savedFaculty);
+        }
+
+        init();
+    </script>
+</body>
+</html>
