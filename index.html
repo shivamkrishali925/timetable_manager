@@ -641,8 +641,6 @@
         // ============= INITIALIZATION =============
         function init() {
             loadFromStorage();
-            renderTimetable();
-            updateStats();
             populateFacultyFilter();
             populateSectionFilter();
             sanitizeTimetableData();
@@ -1133,7 +1131,7 @@
                 return;
             }
 
-            const hasLectures = timetableData.some(l => l.timeSlot === index);
+            const hasLectures = timetableData.some(l => Number(l.timeSlot) === index);
             if (hasLectures && !confirm('This time slot has lectures assigned. Remove it and its lectures?')) {
                 return;
             }
