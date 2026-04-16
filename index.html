@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lecture Timetable Manager - Column Clash</title>
+    <title>Timetable Maker - Column Clash</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         /* [Keep all the existing CSS styles - they're good] */
@@ -437,13 +437,17 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📚 Lecture Timetable Manager (Column Clash Detection)</h1>
-            <p>Manage your nursing college lecture schedule with faculty and day-wise assignments</p>
+            <h1>📚 Timetable Maker (Column Clash Detection)</h1>
+            <p>Create and manage your timetable with custom sections, time slots, and faculty assignments</p>
         </div>
 
         <div class="controls">
             <button onclick="manageFaculty()" class="secondary">
                 <span>👤</span> Manage Faculty
+            </button>
+
+            <button onclick="manageSetup()" class="secondary">
+                <span>⚙️</span> Manage Setup
             </button>
             
             <div class="control-group">
@@ -546,10 +550,47 @@
         </div>
     </div>
 
+    <!-- Setup Management Modal -->
+    <div id="setupModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Manage Timetable Setup</h2>
+                <button class="modal-close" onclick="closeSetupModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Add New Section</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="newSectionName" placeholder="Enter section/class name" style="flex: 1;">
+                        <button onclick="addSection()" class="success">Add</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Current Sections</label>
+                    <div id="sectionsList" style="background: #f8f9fa; padding: 15px; border-radius: 8px; max-height: 220px; overflow-y: auto;"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Add New Time Slot</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="newTimeSlot" placeholder="Example: 16:00 - 17:00" style="flex: 1;">
+                        <button onclick="addTimeSlot()" class="success">Add</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Current Time Slots</label>
+                    <div id="timeSlotsList" style="background: #f8f9fa; padding: 15px; border-radius: 8px; max-height: 220px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Export Content (Hidden) -->
     <div id="exportContent">
         <div class="export-header">
-            <h1>Lecture Timetable</h1>
+            <h1>Timetable</h1>
             <p>Generated on: <span id="exportDate"></span></p>
         </div>
         <table id="exportTable"></table>
@@ -561,8 +602,8 @@
         // ============= DATA STRUCTURES =============
         let timetableData = [];
         let facultyList = ['Dr. Smith', 'Prof. Johnson', 'Dr. Williams'];
-        
-        const sections = [
+
+        const DEFAULT_SECTIONS = [
             'B.Sc. Nursing 1st Year A',
             'B.Sc. Nursing 1st Year B',
             'B.Sc. Nursing 2nd Year A',
@@ -578,7 +619,7 @@
             'ANM 2nd Year'
         ];
 
-        const timeSlots = [
+        const DEFAULT_TIME_SLOTS = [
             '08:00 - 09:00',
             '09:00 - 10:00',
             '10:00 - 11:00',
@@ -589,6 +630,9 @@
             '15:00 - 16:00'
         ];
 
+        let sections = [...DEFAULT_SECTIONS];
+        let timeSlots = [...DEFAULT_TIME_SLOTS];
+
         const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
         let currentEditingCell = null;
@@ -597,10 +641,11 @@
         // ============= INITIALIZATION =============
         function init() {
             loadFromStorage();
-            renderTimetable();
-            updateStats();
+            sanitizeTimetableData();
             populateFacultyFilter();
             populateSectionFilter();
+            renderTimetable();
+            updateStats();
         }
 
         function populateFacultyFilter() {
@@ -616,6 +661,7 @@
 
         function populateSectionFilter() {
             const select = document.getElementById('sectionFilter');
+            const previousValue = select.value;
             select.innerHTML = '<option value="">All Sections</option>';
             sections.forEach(section => {
                 const option = document.createElement('option');
@@ -623,6 +669,9 @@
                 option.textContent = section;
                 select.appendChild(option);
             });
+            if (sections.includes(previousValue)) {
+                select.value = previousValue;
+            }
         }
 
         // ============= RENDERING =============
@@ -963,6 +1012,144 @@
             document.getElementById('facultyModal').classList.remove('active');
         }
 
+        // ============= SETUP MANAGEMENT =============
+        function manageSetup() {
+            renderSetupLists();
+            document.getElementById('setupModal').classList.add('active');
+        }
+
+        function closeSetupModal() {
+            document.getElementById('setupModal').classList.remove('active');
+        }
+
+        function renderSetupLists() {
+            const sectionsList = document.getElementById('sectionsList');
+            sectionsList.innerHTML = '';
+
+            if (sections.length === 0) {
+                sectionsList.innerHTML = '<p style="color: #6c757d; text-align: center;">No sections added yet</p>';
+            } else {
+                sections.forEach((section, index) => {
+                    const item = document.createElement('div');
+                    item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #dee2e6;';
+                    item.innerHTML = `
+                        <span style="font-weight: 600;">${section}</span>
+                        <button class="remove-btn" onclick="removeSection(${index})">Remove</button>
+                    `;
+                    sectionsList.appendChild(item);
+                });
+            }
+
+            const timeSlotsList = document.getElementById('timeSlotsList');
+            timeSlotsList.innerHTML = '';
+
+            if (timeSlots.length === 0) {
+                timeSlotsList.innerHTML = '<p style="color: #6c757d; text-align: center;">No time slots added yet</p>';
+            } else {
+                timeSlots.forEach((slot, index) => {
+                    const item = document.createElement('div');
+                    item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #dee2e6;';
+                    item.innerHTML = `
+                        <span style="font-weight: 600;">${slot}</span>
+                        <button class="remove-btn" onclick="removeTimeSlot(${index})">Remove</button>
+                    `;
+                    timeSlotsList.appendChild(item);
+                });
+            }
+        }
+
+        function addSection() {
+            const input = document.getElementById('newSectionName');
+            const name = input.value.trim();
+
+            if (!name) {
+                alert('Please enter a section name');
+                return;
+            }
+
+            if (sections.includes(name)) {
+                alert('This section already exists');
+                return;
+            }
+
+            sections.push(name);
+            input.value = '';
+            populateSectionFilter();
+            renderSetupLists();
+            saveToStorage();
+            renderTimetable();
+        }
+
+        function removeSection(index) {
+            if (sections.length <= 1) {
+                alert('At least one section is required');
+                return;
+            }
+
+            const section = sections[index];
+            const sectionHasLectures = timetableData.some(l => l.section === section);
+            if (sectionHasLectures && !confirm(`${section} has lectures assigned. Remove section and its lectures?`)) {
+                return;
+            }
+
+            sections.splice(index, 1);
+            timetableData = timetableData.filter(l => l.section !== section);
+
+            populateSectionFilter();
+            recalculateAllClashing();
+            renderSetupLists();
+            saveToStorage();
+            applyFilters();
+            updateStats();
+        }
+
+        function addTimeSlot() {
+            const input = document.getElementById('newTimeSlot');
+            const slot = input.value.trim();
+
+            if (!slot) {
+                alert('Please enter a time slot');
+                return;
+            }
+
+            if (timeSlots.includes(slot)) {
+                alert('This time slot already exists');
+                return;
+            }
+
+            timeSlots.push(slot);
+            input.value = '';
+            renderSetupLists();
+            saveToStorage();
+            renderTimetable();
+        }
+
+        function removeTimeSlot(index) {
+            if (timeSlots.length <= 1) {
+                alert('At least one time slot is required');
+                return;
+            }
+
+            const timeSlotHasLectures = timetableData.some(l => Number(l.timeSlot) === index);
+            if (timeSlotHasLectures && !confirm('This time slot has lectures assigned. Remove it and its lectures?')) {
+                return;
+            }
+
+            timeSlots.splice(index, 1);
+            timetableData = timetableData
+                .filter(l => Number(l.timeSlot) !== index)
+                .map(l => ({
+                    ...l,
+                    timeSlot: Number(l.timeSlot) > index ? Number(l.timeSlot) - 1 : Number(l.timeSlot)
+                }));
+
+            recalculateAllClashing();
+            renderSetupLists();
+            saveToStorage();
+            applyFilters();
+            updateStats();
+        }
+
         function renderFacultyList() {
             const list = document.getElementById('facultyList');
             list.innerHTML = '';
@@ -1280,13 +1467,40 @@
         function saveToStorage() {
             localStorage.setItem('timetableData', JSON.stringify(timetableData));
             localStorage.setItem('facultyList', JSON.stringify(facultyList));
+            localStorage.setItem('sections', JSON.stringify(sections));
+            localStorage.setItem('timeSlots', JSON.stringify(timeSlots));
+        }
+
+        function sanitizeTimetableData() {
+            timetableData = timetableData.filter(lecture =>
+                sections.includes(lecture.section)
+                && Number.isInteger(lecture.timeSlot)
+                && lecture.timeSlot >= 0
+                && lecture.timeSlot < timeSlots.length
+            );
+            recalculateAllClashing();
+            saveToStorage();
         }
 
         function loadFromStorage() {
             const savedData = localStorage.getItem('timetableData');
             const savedFaculty = localStorage.getItem('facultyList');
+            const savedSections = localStorage.getItem('sections');
+            const savedTimeSlots = localStorage.getItem('timeSlots');
             if (savedData) timetableData = JSON.parse(savedData);
             if (savedFaculty) facultyList = JSON.parse(savedFaculty);
+            if (savedSections) {
+                const parsedSections = JSON.parse(savedSections);
+                if (Array.isArray(parsedSections) && parsedSections.length > 0) {
+                    sections = parsedSections;
+                }
+            }
+            if (savedTimeSlots) {
+                const parsedTimeSlots = JSON.parse(savedTimeSlots);
+                if (Array.isArray(parsedTimeSlots) && parsedTimeSlots.length > 0) {
+                    timeSlots = parsedTimeSlots;
+                }
+            }
         }
 
         // ============= EVENT LISTENERS =============
