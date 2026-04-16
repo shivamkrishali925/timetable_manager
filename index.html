@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Time Table Maker - Column Clash</title>
+    <title>Timetable Maker - Column Clash</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         /* [Keep all the existing CSS styles - they're good] */
@@ -437,7 +437,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📚 Time Table Maker (Column Clash Detection)</h1>
+            <h1>📚 Timetable Maker (Column Clash Detection)</h1>
             <p>Create and manage your timetable with custom sections, time slots, and faculty assignments</p>
         </div>
 
@@ -590,7 +590,7 @@
     <!-- Export Content (Hidden) -->
     <div id="exportContent">
         <div class="export-header">
-            <h1>Time Table</h1>
+            <h1>Timetable</h1>
             <p>Generated on: <span id="exportDate"></span></p>
         </div>
         <table id="exportTable"></table>
@@ -1087,8 +1087,8 @@
             }
 
             const section = sections[index];
-            const hasLectures = timetableData.some(l => l.section === section);
-            if (hasLectures && !confirm(`${section} has lectures assigned. Remove section and its lectures?`)) {
+            const sectionHasLectures = timetableData.some(l => l.section === section);
+            if (sectionHasLectures && !confirm(`${section} has lectures assigned. Remove section and its lectures?`)) {
                 return;
             }
 
@@ -1130,8 +1130,8 @@
                 return;
             }
 
-            const hasLectures = timetableData.some(l => Number(l.timeSlot) === index);
-            if (hasLectures && !confirm('This time slot has lectures assigned. Remove it and its lectures?')) {
+            const timeSlotHasLectures = timetableData.some(l => Number(l.timeSlot) === index);
+            if (timeSlotHasLectures && !confirm('This time slot has lectures assigned. Remove it and its lectures?')) {
                 return;
             }
 
