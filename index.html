@@ -641,9 +641,9 @@
         // ============= INITIALIZATION =============
         function init() {
             loadFromStorage();
+            sanitizeTimetableData();
             populateFacultyFilter();
             populateSectionFilter();
-            sanitizeTimetableData();
             renderTimetable();
             updateStats();
         }
@@ -1094,13 +1094,12 @@
 
             sections.splice(index, 1);
             timetableData = timetableData.filter(l => l.section !== section);
-            filteredData = [];
 
             populateSectionFilter();
             recalculateAllClashing();
             renderSetupLists();
             saveToStorage();
-            renderTimetable();
+            applyFilters();
             updateStats();
         }
 
@@ -1138,17 +1137,16 @@
 
             timeSlots.splice(index, 1);
             timetableData = timetableData
-                .filter(l => l.timeSlot !== index)
+                .filter(l => Number(l.timeSlot) !== index)
                 .map(l => ({
                     ...l,
-                    timeSlot: l.timeSlot > index ? l.timeSlot - 1 : l.timeSlot
+                    timeSlot: Number(l.timeSlot) > index ? Number(l.timeSlot) - 1 : Number(l.timeSlot)
                 }));
-            filteredData = [];
 
             recalculateAllClashing();
             renderSetupLists();
             saveToStorage();
-            renderTimetable();
+            applyFilters();
             updateStats();
         }
 
